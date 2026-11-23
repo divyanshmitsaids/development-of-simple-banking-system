@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ClayBank</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* COLOURS (California beaches) - change them here */
+:root{
+  --bg:#e4f0f8;      /* sea blue background */
+  --text:#17415f;    /* navy text */
+  --blue:#1f6fae;    /* main blue */
+  --sky:#4fa3d9;     /* light blue */
+  --ocean:#1e5c8e;   /* dark blue */
+  --orange:#f58b4c;  /* pastel orange */
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+.page{max-width:480px;margin:0 auto;padding:18px}
+[hidden]{display:none !important}
+
+h1{text-align:center;color:var(--ocean);margin:6px 0}
+h2{color:var(--blue);margin:0 0 8px}
+.small{text-align:center;color:var(--orange);font-weight:bold;margin:0 0 14px}
+
+/* white-blue box with soft shadow */
+.box{background:var(--bg);border-radius:16px;padding:16px;margin-bottom:16px;
+     box-shadow:5px 5px 10px #b5cde0,-5px -5px 10px #ffffff}
+
+label{display:block;margin-top:10px;font-size:14px}
+input,select{width:100%;padding:10px;margin-top:4px;border:1px solid #b5cde0;border-radius:8px;
+     background:#ffffff;color:var(--text);font-size:15px;box-sizing:border-box}
+button{margin-top:14px;padding:10px 18px;border:0;border-radius:8px;
+     background:var(--blue);color:#ffffff;font-size:15px;cursor:pointer}
+button.grey{background:#ffffff;color:var(--blue)}
+
+/* blue balance card */
+.balance{background:linear-gradient(135deg,var(--sky),var(--ocean));color:#ffffff;
+     border-radius:16px;padding:20px;margin-bottom:16px}
+.balance .money{font-size:30px;font-weight:bold;margin:6px 0}
+
+#msg{min-height:20px;text-align:center;font-weight:bold}
+.bad{color:#c0392b}
+.good{color:#1f8a5b}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:5px;text-align:left;border-bottom:1px solid #b5cde0}
+textarea{width:100%;height:220px;font-family:monospace;box-sizing:border-box}
+</style>
+</head>
+
+<body>
+<div class="page">
+
+  <h1>🏦 ClayBank</h1>
+  <p class="small">Safe · Simple · Smart banking</p>
+  <p id="msg"></p>
+
+  <!-- SCREEN 1: HOME -->
+  <div id="home">
+    <div class="box">
+      <h2>Login</h2>
+      <label>Account number</label><input id="loginAcc">
+      <label>PIN</label><input id="loginPin" type="password">
+      <button onclick="login()">Login</button>
+    </div>
+
+    <div class="box">
+      <h2>Open new account</h2>
+      <label>Full name</label><input id="newName">
+      <label>Account number (9-18 digits)</label><input id="newAcc">
+      <label>IFSC code (example: SBIN0001234)</label><input id="newIfsc">
+      <label>Create PIN (4-6 digits)</label><input id="newPin" type="password">
+      <p>Opening balance: INR 10,00,000.00</p>
+      <button onclick="openAccount()">Create account</button>
+    </div>
+
+    <p style="text-align:center">💰 Deposit &nbsp; 🏧 Withdraw &nbsp; 🔁 Transfer &nbsp; 🧾 Statement</p>
+    <p style="text-align:center"><a href="#" onclick="showScreen('admin');return false">Admin</a></p>
+  </div>
+
+  <!-- SCREEN 2: DASHBOARD -->
+  <div id="dashboard" hidden>
+    <div class="balance">
+      Hello, <b id="name"></b><br>
+      <div class="money" id="balance"></div>
+      A/c <span id="accno"></span> &nbsp; IFSC <span id="ifsc"></span>
+    </div>
+
+    <div class="box">
+      <h2>Banking services</h2>
+      <label>Choose service</label>
+      <select id="service" onchange="$('receiverBox').hidden = (this.value != 'transfer')">
+        <option value="deposit">💰 Deposit</option>
+        <option value="withdraw">🏧 Withdraw</option>
+        <option value="transfer">🔁 Transfer</option>
+      </select>
+      <div id="receiverBox" hidden>
+        <label>Receiver account number</label><input id="receiver">
+      </div>
+      <label>Amount (INR)</label><input id="amount" type="number">
+      <button onclick="runService()">Submit</button>
+    </div>
+
+    <div class="box">
+      <h2>Last 5 transactions</h2>
+      <table id="history"></table>
+    </div>
+
+    <button class="grey" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- SCREEN 3: ADMIN (only you) -->
+  <div id="admin" hidden>
+    <div class="box">
+      <h2 id="adminTitle">Admin</h2>
+      <label>Admin password</label><input id="adminPw" type="password">
+      <button onclick="adminLogin()">Open</button>
+      <button class="grey" onclick="showScreen('home')">Back</button>
+    </div>
+    <div class="box" id="adminData" hidden>
+      <label>Choose file</label>
+      <select id="fileChoice" onchange="showFile()">
+        <option value="0">accounts.csv</option>
+        <option value="1">accounts.xml</option>
+        <option value="2">transactions.csv</option>
+        <option value="3">transactions.xml</option>
+      </select>
+      <textarea id="fileText" readonly></textarea>
+      <button onclick="copyFile()">Copy</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const START = 1000000;     // opening balance for every account
+let user = null;           // account number of the person logged in
+let memory = null;         // backup if the browser blocks storage
+
+const $ = id => document.getElementById(id);
+const val = id => $(id).value.trim();
+
+/* ---------- save and load data in the browser ---------- */
+function load(){
+  try { const t = localStorage.getItem('bank'); if (t) return JSON.parse(t); } catch(e) {}
+  return memory || { accounts: [], txns: [] };
+}
+function save(data){
+  memory = data;
+  try { localStorage.setItem('bank', JSON.stringify(data)); } catch(e) {}
+}
+
+/* ---------- small helpers ---------- */
+async function hash(text){      // PIN is saved as a hash, not as plain text
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('bk#' + text));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch(e) { return 'x' + text; }
+}
+const inr = n => 'INR ' + Number(n).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+function say(text, good){ $('msg').textContent = text; $('msg').className = good ? 'good' : 'bad'; }
+function showScreen(name){
+  ['home', 'dashboard', 'admin'].forEach(s => $(s).hidden = (s != name));
+  $('msg').textContent = '';
+  if (name == 'admin') $('adminTitle').textContent = localStorage.getItem('bankadmin') ? 'Admin login' : 'Create admin password';
+}
+function addHistory(data, acc, type, amount, note){
+  data.txns.push({ time: new Date().toLocaleString('sv-SE'), account: acc.no, type: type,
+                   amount: amount, balance_after: acc.balance, note: note || '' });
+}
+
+/* ---------- open account, login, logout ---------- */
+async function openAccount(){
+  const data = load();
+  const name = val('newName'), no = val('newAcc'), ifsc = val('newIfsc').toUpperCase(), pin = val('newPin');
+  if (!name) return say('Name is required.');
+  if (!/^\d{9,18}$/.test(no)) return say('Account number must be 9-18 digits.');
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return say('Invalid IFSC code.');
+  if (!/^\d{4,6}$/.test(pin)) return say('PIN must be 4-6 digits.');
+  if (data.accounts.some(a => a.no == no)) return say('Account number already exists.');
+  const acc = { name: name, no: no, ifsc: ifsc, pin: await hash(pin), balance: START };
+  data.accounts.push(acc);
+  addHistory(data, acc, 'ACCOUNT_OPENED', START, 'Opening balance');
+  save(data);
+  say('Account created. Now you can log in.', true);
+}
+async function login(){
+  const acc = load().accounts.find(a => a.no == val('loginAcc'));
+  if (!acc || acc.pin != await hash(val('loginPin'))) return say('Wrong account number or PIN.');
+  user = acc.no;
+  showScreen('dashboard');
+  refresh();
+}
+function logout(){ user = null; showScreen('home'); }
+
+/* ---------- dashboard ---------- */
+function refresh(){
+  const data = load(), me = data.accounts.find(a => a.no == user);
+  $('name').textContent = me.name;
+  $('balance').textContent = inr(me.balance);
+  $('accno').textContent = me.no;
+  $('ifsc').textContent = me.ifsc;
+  const last5 = data.txns.filter(t => t.account == user).slice(-5).reverse();
+  $('history').innerHTML = '<tr><th>Date</th><th>Type</th><th>Amount</th></tr>' +
+    last5.map(t => `<tr><td>${t.time}</td><td>${t.type}</td><td>${inr(t.amount)}</td></tr>`).join('');
+}
+
+/* ---------- deposit, withdraw, transfer ---------- */
+function runService(){
+  const kind = $('service').value;
+  const amount = Math.round(parseFloat(val('amount')) * 100) / 100;
+  if (!(amount > 0)) return say('Enter a valid amount.');
+  const data = load(), me = data.accounts.find(a => a.no == user);
+
+  if (kind == 'deposit') {
+    me.balance += amount;
+    addHistory(data, me, 'DEPOSIT', amount);
+  } else {
+    if (amount > me.balance) return say('Insufficient balance.');
+    if (kind == 'withdraw') {
+      me.balance -= amount;
+      addHistory(data, me, 'WITHDRAWAL', amount);
+    } else {
+      const to = data.accounts.find(a => a.no == val('receiver'));
+      if (!to || to.no == me.no) return say('Receiver account not found.');
+      me.balance -= amount;
+      to.balance += amount;
+      addHistory(data, me, 'TRANSFER_OUT', amount, 'To ' + to.no);
+      addHistory(data, to, 'TRANSFER_IN', amount, 'From ' + me.no);
+    }
+  }
+  save(data);
+  $('amount').value = '';
+  $('receiver').value = '';
+  refresh();
+  say('Done!', true);
+}
+
+/* ---------- admin: only you can see the CSV / XML files ---------- */
+async function adminLogin(){
+  const saved = localStorage.getItem('bankadmin'), pw = val('adminPw');
+  if (!saved) {                                   // first time: create password
+    if (pw.length < 6) return say('Password needs at least 6 characters.');
+    localStorage.setItem('bankadmin', await hash(pw));
+  } else if (saved != await hash(pw)) {
+    return say('Wrong admin password.');
+  }
+  $('adminPw').value = '';
+  $('adminData').hidden = false;
+  showFile();
+}
+function toCSV(rows, cols){
+  return cols.join(',') + '\n' + rows.map(r => cols.map(c => '"' + String(r[c]).replace(/"/g, '""') + '"').join(',')).join('\n');
+}
+function toXML(root, item, rows, cols){
+  const clean = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return '<' + root + '>\n' + rows.map(r => '  <' + item + '>\n' +
+    cols.map(c => '    <' + c + '>' + clean(r[c]) + '</' + c + '>\n').join('') + '  </' + item + '>').join('\n') + '\n</' + root + '>';
+}
+function showFile(){
+  const data = load();
+  const accRows = data.accounts.map(a => ({ name: a.name, account_number: a.no, ifsc: a.ifsc, balance: a.balance.toFixed(2) }));
+  const accCols = ['name', 'account_number', 'ifsc', 'balance'];
+  const txCols = ['time', 'account', 'type', 'amount', 'balance_after', 'note'];
+  const files = [
+    toCSV(accRows, accCols),
+    toXML('accounts', 'account', accRows, accCols),
+    toCSV(data.txns, txCols),
+    toXML('transactions', 'transaction', data.txns, txCols)
+  ];
+  $('fileText').value = files[$('fileChoice').value];
+}
+function copyFile(){
+  $('fileText').select();
+  try { navigator.clipboard.writeText($('fileText').value); } catch(e) { document.execCommand('copy'); }
+  say('Copied. Paste it into a new file and save it.', true);
+}
+</script>
+</body>
+</html>
