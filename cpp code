@@ -1,0 +1,159 @@
+// Clay Bank - basic C++ console banking system (data stored in CSV files)
+// Compile: g++ bank.cpp -o bank && ./bank
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <algorithm>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
+typedef unsigned long long ull;
+
+struct Account { int id; string name, ah, a4, pan, salt, pin; double bal, loan; };
+vector<Account> accs;
+
+// salted, repeated FNV-1a hash (basic; use a real library such as bcrypt/argon2 in production)
+string hashIt(string s, string salt) {
+    ull h = 1469598103934665603ULL; s = salt + s + salt;
+    for (int r = 0; r < 50000; r++)
+        for (char c : s) { h ^= (unsigned char)c; h *= 1099511628211ULL; }
+    return to_string(h);
+}
+string newSalt() { string s; for (int i = 0; i < 16; i++) s += to_string(rand() % 10); return s; }
+vector<string> split(const string &s) {
+    vector<string> v; string t; stringstream ss(s);
+    while (getline(ss, t, ',')) v.push_back(t);
+    return v;
+}
+bool digits(const string &s, size_t n) {
+    return s.size() == n && all_of(s.begin(), s.end(), ::isdigit);
+}
+bool strong(const string &p) {
+    bool u = 0, l = 0, d = 0, s = 0;
+    for (char c : p) { if (isupper(c)) u = 1; else if (islower(c)) l = 1; else if (isdigit(c)) d = 1; else s = 1; }
+    return p.size() >= 8 && u && l && d && s;
+}
+
+// ---------- CSV storage: accounts.csv ----------
+void save() {
+    ofstream f("accounts.csv");
+    f << "id,name,aadhar_hash,aadhar_last4,pan,salt,pin_hash,balance,loan\n";
+    for (auto &a : accs)
+        f << a.id << ',' << a.name << ',' << a.ah << ',' << a.a4 << ',' << a.pan << ','
+          << a.salt << ',' << a.pin << ',' << a.bal << ',' << a.loan << '\n';
+}
+void load() {
+    ifstream f("accounts.csv"); string line; getline(f, line);   // skip header
+    while (getline(f, line)) {
+        vector<string> v = split(line);
+        if (v.size() < 9) continue;
+        accs.push_back({stoi(v[0]), v[1], v[2], v[3], v[4], v[5], v[6], stod(v[7]), stod(v[8])});
+    }
+}
+int findById(int id) {
+    for (size_t i = 0; i < accs.size(); i++) if (accs[i].id == id) return i;
+    return -1;
+}
+
+void createAccount() {
+    Account a; string aadhar, pin; cin.ignore();
+    cout << "Full name: "; getline(cin, a.name);
+    replace(a.name.begin(), a.name.end(), ',', ' ');
+    cout << "Aadhar number (12 digits): "; cin >> aadhar;
+    cout << "PAN number (10 chars): ";    cin >> a.pan;
+    cout << "Set 4-digit PIN: ";          cin >> pin;
+    if (!digits(aadhar, 12) || a.pan.size() != 10 || !digits(pin, 4)) { cout << "Invalid details.\n"; return; }
+    a.ah = hashIt(aadhar, "clay-aadhar");
+    for (auto &x : accs)
+        if (x.ah == a.ah) { cout << "An account already exists for this Aadhar number!\n"; return; }
+    a.a4 = aadhar.substr(8); a.salt = newSalt(); a.pin = hashIt(pin, a.salt);
+    a.id = 1001 + accs.size(); a.bal = 0; a.loan = 0;
+    accs.push_back(a); save();
+    cout << "Account created! Your account number: " << a.id << "\n";
+}
+
+void dashboard(int i) {
+    int ch;
+    do {
+        Account &a = accs[i];
+        cout << "\n=== DASHBOARD: " << a.name << " | A/c " << a.id << " ===\n"
+             << "Balance: Rs " << a.bal << "   Loan due: Rs " << a.loan << "\n"
+             << "1.Deposit 2.Withdraw 3.Transfer 4.Take Loan 5.Repay Loan 0.Logout\nChoice: ";
+        cin >> ch; double amt;
+        if (ch == 1) { cout << "Amount: "; cin >> amt; if (amt > 0) a.bal += amt; }
+        else if (ch == 2) { cout << "Amount: "; cin >> amt;
+            if (amt > 0 && amt <= a.bal) a.bal -= amt; else cout << "Insufficient funds.\n"; }
+        else if (ch == 3) { int to; cout << "To account no: "; cin >> to; cout << "Amount: "; cin >> amt;
+            int j = findById(to);
+            if (j < 0 || j == i) cout << "Invalid recipient.\n";
+            else if (amt <= 0 || amt > a.bal) cout << "Insufficient funds.\n";
+            else { a.bal -= amt; accs[j].bal += amt; cout << "Transferred.\n"; } }
+        else if (ch == 4) { cout << "Loan amount (max Rs 5,00,000): "; cin >> amt;
+            if (amt > 0 && a.loan + amt <= 500000) { a.loan += amt; a.bal += amt; }
+            else cout << "Loan limit exceeded.\n"; }
+        else if (ch == 5) { cout << "Repay amount: "; cin >> amt;
+            if (amt > 0 && amt <= a.bal && amt <= a.loan) { a.bal -= amt; a.loan -= amt; }
+            else cout << "Cannot repay that amount.\n"; }
+        save();
+    } while (ch != 0);
+}
+
+void login() {
+    int id, tries = 0; string pin;
+    cout << "Account number: "; cin >> id;
+    int i = findById(id);
+    while (tries < 3) {
+        cout << "PIN: "; cin >> pin;
+        if (i >= 0 && accs[i].pin == hashIt(pin, accs[i].salt)) { dashboard(i); return; }
+        cout << "Wrong account number or PIN (" << ++tries << "/3).\n";
+    }
+    cout << "Too many failed attempts.\n";
+}
+
+// ---------- Admin (password stored as salted hash in admin.csv) ----------
+void adminMenu() {
+    int ch;
+    do {
+        cout << "\n--- ADMIN PANEL ---\n1.List accounts 2.Bank totals 0.Back\nChoice: "; cin >> ch;
+        if (ch == 1) {
+            cout << "A/c  Name  Aadhar  PAN  Balance  Loan\n";
+            for (auto &a : accs)
+                cout << a.id << "  " << a.name << "  XXXX-XXXX-" << a.a4 << "  "
+                     << a.pan.substr(0, 2) << "******" << a.pan.substr(8) << "  " << a.bal << "  " << a.loan << "\n";
+        } else if (ch == 2) {
+            double t = 0, l = 0; for (auto &a : accs) { t += a.bal; l += a.loan; }
+            cout << "Accounts: " << accs.size() << "  Deposits: Rs " << t << "  Loans: Rs " << l << "\n";
+        }
+    } while (ch != 0);
+}
+void admin() {
+    ifstream f("admin.csv"); string line; vector<string> v;
+    if (f && getline(f, line)) v = split(line);
+    string p;
+    if (v.size() < 2) {   // first run: create admin password (no default password exists)
+        cout << "First-time setup. Create admin password (8+ chars, upper, lower, digit, symbol): ";
+        cin >> p;
+        if (!strong(p)) { cout << "Password too weak.\n"; return; }
+        string s = newSalt(); ofstream("admin.csv") << s << ',' << hashIt(p, s) << '\n';
+        cout << "Admin password set.\n"; adminMenu(); return;
+    }
+    for (int t = 1; t <= 3; t++) {
+        cout << "Admin password: "; cin >> p;
+        if (hashIt(p, v[0]) == v[1]) { adminMenu(); return; }
+        cout << "Incorrect (" << t << "/3).\n";
+    }
+    cout << "Admin locked for this session.\n";
+}
+
+int main() {
+    srand(time(0)); load(); int ch;
+    do {
+        cout << "\n*** CLAY BANK - Trust. Grow. Prosper. ***\n"
+             << "1.Create Account  2.Login  3.Admin  0.Exit\nChoice: ";
+        cin >> ch;
+        if (ch == 1) createAccount(); else if (ch == 2) login(); else if (ch == 3) admin();
+    } while (ch != 0);
+    return 0;
+}
