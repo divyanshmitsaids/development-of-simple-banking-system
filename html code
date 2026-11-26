@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clay Bank</title>
+<style>
+:root{--bg:#f7f3ea;--card:#fff;--ink:#14213d;--mut:#5b6478;--gold:#c9962b;--navy:#14213d;--line:#e4dccb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1424;--card:#16203a;--ink:#f2ead8;--mut:#a9b2c6;--gold:#e0b04a;--navy:#0a1020;--line:#26334f}}
+:root[data-theme="dark"]{--bg:#0d1424;--card:#16203a;--ink:#f2ead8;--mut:#a9b2c6;--gold:#e0b04a;--navy:#0a1020;--line:#26334f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,'Times New Roman',serif}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:10px 16px}
+nav b{color:#e0b04a;font-size:20px;margin-right:auto}nav a{color:#f2ead8;font:14px system-ui,sans-serif;padding:8px 10px;border-radius:8px;cursor:pointer;text-decoration:none}
+nav a:hover{background:rgba(255,255,255,.12)}nav a.cta{background:var(--gold);color:#14213d;font-weight:600}
+.wrap{max-width:960px;margin:auto;padding:24px 16px}
+.hero{background:linear-gradient(135deg,#14213d,#27407a);color:#f2ead8;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;padding:40px 24px;border-radius:0 0 28px 28px}
+.hero h1{font-size:clamp(28px,5vw,46px);margin:0 0 10px}.hero p{font-family:system-ui,sans-serif;opacity:.85}
+.btn{background:var(--gold);color:#14213d;border:0;border-radius:10px;padding:11px 18px;font:600 15px system-ui,sans-serif;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.card h3{margin:6px 0;color:var(--gold)}.card p{font:14px system-ui,sans-serif;color:var(--mut);margin:0}
+h2{border-left:5px solid var(--gold);padding-left:10px}
+.vision{background:var(--navy);color:#f2ead8;border-radius:20px;padding:26px;text-align:center}
+.vision q{display:block;font-size:24px;color:#e0b04a;margin:12px 0}
+label{display:block;font:13px system-ui,sans-serif;margin:10px 0 4px;color:var(--mut)}
+input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:15px}
+.view{display:none}.view.on{display:block}.msg{font:14px system-ui,sans-serif;margin-top:10px;min-height:20px}
+.bal{font-size:34px;color:var(--gold)}footer{text-align:center;padding:20px;color:var(--mut);font:13px system-ui,sans-serif}
+@media(max-width:640px){.hero{grid-template-columns:1fr}}
+.cfab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9;width:56px;height:56px;border-radius:50%;border:0;background:var(--gold);font-size:26px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.cbox{display:none;position:fixed;left:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9;width:min(360px,calc(100% - 32px));height:440px;max-height:70vh;background:var(--card);border:1px solid var(--line);border-radius:16px;flex-direction:column;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+.cbox.open{display:flex}.ch{background:var(--navy);color:#e0b04a;padding:12px 14px;display:flex;justify-content:space-between;font:600 15px system-ui,sans-serif}
+.cm{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}.m{max-width:85%;padding:8px 12px;border-radius:12px;font:14px/1.4 system-ui,sans-serif;white-space:pre-wrap}
+.m.b{background:var(--bg);align-self:flex-start}.m.u{background:var(--gold);color:#14213d;align-self:flex-end}
+.cf{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}.cf .btn{padding:8px 14px}
+</style></head><body>
+<nav><b>&#9672; Clay Bank</b>
+<a onclick="go('home')">Home</a><a onclick="feat('deposit')">Deposit</a><a onclick="feat('withdraw')">Withdraw</a><a onclick="feat('transfer')">Transfer</a><a onclick="feat('loan')">Loan</a>
+<a id="nA" onclick="go('create')" class="cta">Create Account</a><a id="nL" onclick="go('login')">Login</a><a id="nO" onclick="logout()" style="display:none">Logout</a><a onclick="openAdm()">&#128274; Admin</a></nav>
+
+<div id="home" class="view on">
+<section class="hero"><div><h1>Banking that grows with you.</h1><p>Deposits, transfers, loans and more &mdash; secure, simple and built on trust since day one.</p><br><button class="btn" onclick="go('create')">Open an Account</button></div>
+<svg viewBox="0 0 320 240" role="img" aria-label="Bank building with coins"><rect x="30" y="200" width="260" height="12" rx="4" fill="#c9962b"/><polygon points="160,30 40,90 280,90" fill="#e0b04a"/><rect x="50" y="92" width="220" height="10" fill="#f2ead8"/>
+<g fill="#f2ead8"><rect x="62" y="106" width="26" height="88" rx="3"/><rect x="108" y="106" width="26" height="88" rx="3"/><rect x="186" y="106" width="26" height="88" rx="3"/><rect x="232" y="106" width="26" height="88" rx="3"/></g><rect x="142" y="130" width="36" height="70" rx="18" fill="#c9962b"/>
+<circle cx="160" cy="62" r="14" fill="#14213d"/><text x="160" y="68" text-anchor="middle" font-size="16" fill="#e0b04a" font-family="Georgia">&#8377;</text>
+<g fill="#e0b04a" stroke="#8a6310"><circle cx="40" cy="170" r="16"/><circle cx="292" cy="150" r="20"/><circle cx="270" cy="190" r="12"/></g><g fill="#14213d" font-size="14" font-family="Georgia" text-anchor="middle"><text x="40" y="175">&#8377;</text><text x="292" y="156">&#8377;</text></g></svg></section>
+<div class="wrap"><h2>Our Services</h2><div class="grid">
+<div class="card"><h3>&#128181; Deposits</h3><p>Add money to your account instantly.</p></div><div class="card"><h3>&#127975; Withdrawals</h3><p>Withdraw anytime within your balance.</p></div>
+<div class="card"><h3>&#8644; Transfers</h3><p>Send money to any Clay Bank account.</p></div><div class="card"><h3>&#127968; Loans</h3><p>Quick loans up to &#8377;5,00,000.</p></div></div>
+<h2>Bank Vision &amp; Overview</h2><div class="vision"><div>Our Vision</div><q>To make every Indian household financially confident.</q><p style="font-family:system-ui,sans-serif;opacity:.85">Clay Bank is a customer-first bank offering transparent, secure and inclusive financial services. One citizen, one account &mdash; verified by Aadhar &amp; PAN.</p><div class="grid" style="margin-top:16px"><div>&#128274;<br>Secure</div><div>&#129309;<br>Transparent</div><div>&#127793;<br>Growth</div></div></div></div>
+<footer>&copy; 2026 Clay Bank &mdash; Trust. Grow. Prosper.</footer></div>
+
+<div id="create" class="view"><div class="wrap" style="max-width:480px"><h2>Create Account</h2><div class="card">
+<label>Full name</label><input id="cn"><label>Aadhar number (12 digits)</label><input id="ca" maxlength="12" inputmode="numeric"><label>PAN number (10 characters)</label><input id="cp" maxlength="10" style="text-transform:uppercase">
+<label>Date of birth</label><input id="cd" type="date"><label>Mobile number</label><input id="cm" maxlength="10" inputmode="numeric"><label>Address</label><input id="cr"><label>Set 4-digit PIN</label><input id="cx" type="password" maxlength="4" inputmode="numeric">
+<br><br><button class="btn" onclick="create()">Create Account</button><div class="msg" id="cmsg"></div></div></div></div>
+
+<div id="login" class="view"><div class="wrap" style="max-width:480px"><h2>Login</h2><div class="card"><label>Account number</label><input id="la" inputmode="numeric"><label>PIN</label><input id="lp" type="password" maxlength="4">
+<br><br><button class="btn" onclick="login()">Login</button><div class="msg" id="lmsg"></div></div></div></div>
+
+<div id="adm" class="view"><div class="wrap"><h2>Admin Portal</h2><div class="card" id="ag" style="max-width:480px"><p id="ahint"></p><label>Password</label><input id="ap" type="password" autocomplete="off"><div id="ac" style="display:none"><label>Confirm password</label><input id="ap2" type="password" autocomplete="off"></div><br><button class="btn" onclick="adminAuth()">Continue</button><div class="msg" id="amsg"></div></div><div id="apanel" style="display:none"><div class="grid" id="astats"></div><br><div class="card" style="overflow-x:auto"><table id="at" style="width:100%;border-collapse:collapse;font:13px system-ui,sans-serif"></table></div><br><div class="card"><h3>Data (CSV)</h3><p>Copy this and save it as clay-bank-accounts.csv</p><br><textarea id="acsv" readonly rows="6" style="width:100%;background:var(--bg);color:var(--ink)"></textarea><br><br><button class="btn" onclick="adminOut()">Admin Logout</button></div></div></div></div>
+
+<div id="dash" class="view"><div class="wrap"><h2 id="dh"></h2><div class="grid"><div class="card"><p>Balance</p><div class="bal" id="db"></div></div><div class="card"><p>Loan due</p><div class="bal" id="dl"></div></div><div class="card"><p>Account no.</p><div class="bal" id="di"></div></div></div>
+<br><div class="card"><h3 id="ft">Choose a service from the menu</h3><div id="ff"></div><div class="msg" id="fm"></div></div></div></div>
+
+
+<button class="cfab" onclick="chatToggle()" aria-label="Open chat assistant">&#128172;</button>
+<div class="cbox" id="cbox"><div class="ch">Clay Assistant <span onclick="chatToggle()" style="cursor:pointer">&#10005;</span></div><div id="cmsgs" class="cm"><div class="m b">Hi! I’m Clay Bank’s assistant. Ask me about accounts, deposits, transfers or loans. Please never share your PIN, Aadhar or passwords here.</div></div><div class="cf"><input id="cin" placeholder="Type your question..." onkeydown="if(event.key==='Enter')chatSend()"><button class="btn" onclick="chatSend()">Send</button></div></div>
+<script>
+var DB=[],me=null,cur='deposit';
+try{DB=JSON.parse(localStorage.getItem('clay')||'[]')}catch(e){}
+function sv(){try{localStorage.setItem('clay',JSON.stringify(DB))}catch(e){}}
+function $(i){return document.getElementById(i)}
+function salt(){var a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}
+async function H(s,sa){var e=new TextEncoder(),k=await crypto.subtle.importKey('raw',e.encode(s),'PBKDF2',false,['deriveBits']),b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:e.encode(sa),iterations:100000,hash:'SHA-256'},k,256);return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}
+function go(v){document.querySelectorAll('.view').forEach(function(x){x.classList.remove('on')});$(v).classList.add('on');scrollTo(0,0)}
+async function create(){var n=$('cn').value.trim(),a=$('ca').value,p=$('cp').value.toUpperCase(),x=$('cx').value,m=$('cmsg');
+if(!n||!/^\d{12}$/.test(a)||!/^[A-Z]{5}\d{4}[A-Z]$/.test(p)||!/^\d{4}$/.test(x)||!$('cd').value||!/^\d{10}$/.test($('cm').value)||!$('cr').value.trim()){m.textContent='Please fill all fields correctly (PAN format: ABCDE1234F).';return}
+var ah=await H(a,'clay-aadhar');if(DB.some(function(u){return u.ah===ah})){m.textContent='An account already exists for this Aadhar number.';return}
+var sa=salt(),id=1001+DB.length;DB.push({id:id,name:n,ah:ah,a4:a.slice(-4),pan:p,salt:sa,pin:await H(x,sa),bal:0,loan:0});sv();
+m.textContent='Account created! Your account number is '+id+'. Please login.';}
+async function login(){var u=DB.find(function(z){return z.id==$('la').value});if(u&&u.pin!==await H($('lp').value,u.salt))u=null;
+if(!u){$('lmsg').textContent='Wrong account number or PIN.';return}
+me=u;$('nA').style.display=$('nL').style.display='none';$('nO').style.display='';go('dash');feat('deposit',1)}
+function logout(){me=null;$('nA').style.display=$('nL').style.display='';$('nO').style.display='none';go('home')}
+function refresh(){$('dh').textContent='Welcome, '+me.name;$('db').textContent='\u20B9'+me.bal.toFixed(2);$('dl').textContent='\u20B9'+me.loan.toFixed(2);$('di').textContent=me.id}
+function feat(f,q){if(!me){go('login');$('lmsg').textContent='Please login to use banking features.';return}
+cur=f;go('dash');refresh();$('fm').textContent='';
+var t={deposit:'Deposit money',withdraw:'Withdraw money',transfer:'Transfer money',loan:'Loan (max \u20B95,00,000)'}[f];$('ft').textContent=t;
+var h=(f=='transfer'?'<label>To account number</label><input id="f2" inputmode="numeric">':'')+'<label>Amount (\u20B9)</label><input id="f1" type="number" min="1">'+'<br><br><button class="btn" onclick="act()">Submit</button>'+(f=='loan'?' <button class="btn" onclick="repay()">Repay</button>':'');$('ff').innerHTML=h}
+function act(){var a=parseFloat($('f1').value),m=$('fm');if(!(a>0)){m.textContent='Enter a valid amount.';return}
+if(cur=='deposit')me.bal+=a;
+else if(cur=='withdraw'){if(a>me.bal){m.textContent='Insufficient funds.';return}me.bal-=a}
+else if(cur=='transfer'){var r=DB.find(function(z){return z.id==$('f2').value});if(!r||r===me){m.textContent='Invalid recipient.';return}if(a>me.bal){m.textContent='Insufficient funds.';return}me.bal-=a;r.bal+=a}
+else if(cur=='loan'){if(me.loan+a>500000){m.textContent='Loan limit exceeded.';return}me.loan+=a;me.bal+=a}
+sv();refresh();m.textContent='Done \u2714'}
+function repay(){var a=parseFloat($('f1').value);if(!(a>0)||a>me.bal||a>me.loan){$('fm').textContent='Cannot repay that amount.';return}me.bal-=a;me.loan-=a;sv();refresh();$('fm').textContent='Repaid \u2714'}
+var AD=null,tries=0,lock=0;
+function AS(){try{return JSON.parse(localStorage.getItem('clayAdmin'))}catch(e){return null}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function cq(s){s=String(s);if(/^[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
+function openAdm(){go('adm');var s=AS();$('ahint').textContent=s?'Authorised staff only.':'First-time setup: create the admin password (min 8 characters with upper, lower, number and symbol).';$('ac').style.display=s?'none':'';if(AD)panel();else{$('ag').style.display='';$('apanel').style.display='none'}}
+async function adminAuth(){var m=$('amsg'),p=$('ap').value,s=AS();
+if(Date.now()<lock){m.textContent='Locked. Try again in '+Math.ceil((lock-Date.now())/1000)+'s.';return}
+if(!s){if(p!==$('ap2').value){m.textContent='Passwords do not match.';return}
+if(!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(p)){m.textContent='Password too weak.';return}
+var sa=salt();try{localStorage.setItem('clayAdmin',JSON.stringify({salt:sa,hash:await H(p,sa)}))}catch(e){}}
+else if(await H(p,s.salt)!==s.hash){tries++;if(tries>=3){lock=Date.now()+60000;tries=0;m.textContent='Too many attempts. Locked for 60 seconds.'}else m.textContent='Incorrect password.';return}
+tries=0;AD=1;$('ap').value=$('ap2').value='';m.textContent='';panel()}
+function panel(){$('ag').style.display='none';$('apanel').style.display='';var t=0,l=0,td='padding:6px;border-bottom:1px solid var(--line)',r='<tr><th>A/c</th><th>Name</th><th>Aadhar</th><th>PAN</th><th>Balance</th><th>Loan</th></tr>',c='account_no,name,aadhar_last4,pan_masked,balance,loan\n';
+DB.forEach(function(u){t+=u.bal;l+=u.loan;var pm=u.pan.slice(0,2)+'******'+u.pan.slice(-2);r+='<tr>'+[u.id,esc(u.name),'XXXX-XXXX-'+u.a4,pm,u.bal.toFixed(2),u.loan.toFixed(2)].map(function(v){return '<td style="'+td+'">'+v+'</td>'}).join('')+'</tr>';c+=[u.id,cq(u.name),u.a4,pm,u.bal,u.loan].join(',')+'\n'});
+$('at').innerHTML=r;$('acsv').value=c;$('astats').innerHTML='<div class="card"><p>Accounts</p><div class="bal">'+DB.length+'</div></div><div class="card"><p>Total deposits</p><div class="bal">\u20B9'+t.toFixed(2)+'</div></div><div class="card"><p>Loans issued</p><div class="bal">\u20B9'+l.toFixed(2)+'</div></div>'}
+function adminOut(){AD=null;go('home')}
+var CH=[],SYS="You are Clay Bank's friendly customer-support assistant. Help with questions about accounts, deposits, withdrawals, transfers, loans (up to Rs 5,00,000), the one-account-per-Aadhar rule, PAN requirements, and general banking and money tips. You cannot see or change any customer account. Never ask for or accept PINs, passwords, full Aadhar or PAN numbers, and warn users not to share them. Keep answers short and plain.";
+function chatToggle(){$('cbox').classList.toggle('open')}
+function addMsg(t,c){var d=document.createElement('div');d.className='m '+c;d.textContent=t;$('cmsgs').appendChild(d);$('cmsgs').scrollTop=1e9;return d}
+async function chatSend(){var i=$('cin'),t=i.value.trim();if(!t)return;i.value='';addMsg(t,'u');
+var s=null;try{s=window.claude?await window.claude.use('sample'):null}catch(e){}
+if(!s){addMsg('The assistant is not available right now.','b');return}
+CH.push({role:'user',content:t});CH=CH.slice(-10);while(CH.length&&CH[0].role!=='user')CH.shift();
+var m=addMsg('Thinking...','b'),pre=[{role:'user',content:SYS+' Reply "Understood" and wait for the customer.'},{role:'assistant',content:'Understood.'}];
+try{var r=await s(pre.concat(CH),{cache:false,onText:function(x){m.textContent=x.text}});m.textContent=r.text;CH.push({role:'assistant',content:r.text})}catch(e){m.textContent='Sorry, I could not answer right now. Please try again.';CH.pop()}}
+</script></body></html>
